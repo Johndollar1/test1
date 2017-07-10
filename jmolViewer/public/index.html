@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8"/>
+         <script src="libs/JSmol.min.js"></script>
+        <!-- Ensure that everything scales appropriately on a mobile device -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+            
+            <!-- Let's borrow a cool looking Font from Google -->
+            <link href='https://fonts.googleapis.com/css?family=Quicksand:300,400,700' rel='stylesheet' type='text/css'>
+                
+                <link href="css/styles.css" rel="stylesheet">
+                <script type="text/javascript">
+                var Info;
+                ;(function() {
+                Info = {
+                width: 500,
+                height: 500,
+                debug: false,
+                color: "0xC0C0C0",
+                addSelectionOptions: true,
+                serverURL: "http://chemapps.stolaf.edu/jmol/jsmol/php/jsmol.php",
+                use: "HTML5",
+                readyFunction: null,
+                defaultModel: ":dopamine", // PubChem -- use $ for NCI
+                bondWidth: 4,
+                zoomScaling: 1.5,
+                pinchScaling: 2.0,
+                mouseDragFactor: 0.5,
+                touchDragFactor: 0.15,
+                multipleBondSpacing: 4,
+                spinRateX: 0.2,
+                spinRateY: 0.5,
+                spinFPS: 20,
+                spin:true,
+                debug: false
+                }
+                })();
+                </script>
+                </head>
+                
+                <body>
+                
+                <div><script>jma = Jmol.getApplet("jma", Info)</script></div>
+                <div id="canvasArea">
+                <!-- This is where the templates defined below will be used -->
+                </div>
+                
+                <!-- Main Title Screen that appears when the page loads for the first time -->
+                <script id="intro-screen-template" type="text/template">
+                <div class="titleWrapper">
+                <div class="title">Jmol App</div>
+                <div class="buttons">
+                <button id="btnCreateCanvas" class="btn left">CREATE Jmol Canvas</button>
+                <button id="btnJoinCanvas" class="btn right">JOIN Canvas</button>
+                <div style="clear:both"></div>
+                </div>
+                </div>
+                </script>
+                
+                <!-- This screen appears when a user clicks "CREATE" on the Title Screen -->
+                <script id="create-canvas-template" type="text/template">
+                <div class="createCanvasWrapper">
+                
+                <div class="info">Open this site on your mobile device:</div>
+                <div id="gameURL" class="infoBig">Error!</div>
+                
+                <div class="info">Then click <strong>JOIN</strong> and <br/> enter the following Game ID:</div>
+                <div id="spanNewGameCode" class="gameId">Error!</div>
+                
+                <div id="playersWaitingMessage"></div>
+                </div>
+                </script>
+                
+                <!-- This scrreen appears when a player clicks "JOIN" on the Title Screen -->
+                <script id="join-canvas-template" type="text/template">
+                <div class="joinCanvasWrapper">
+                <div class="info">
+                <label for="inputPlayerName">Your Name:</label>
+                <input id="inputPlayerName" type="text" />
+                </div>
+                
+                <div class="info">
+                <label for="inputCanvasId">Canvas ID:</label>
+                <input id="inputCanvasId" type="text"/>
+                </div>
+                
+                <div class="info buttons">
+                <button id="btnStart" class="btn">Pair Canvas</button>
+                <div id="playerWaitingMessage"></div>
+                </div>
+                </div>
+                </script>
+                
+                <!-- This is the player gyro values display code -->
+                <script id="player-gyro-code" type="text/template">
+                <div class="main">
+                <h2>Device Orientation</h2>
+                <table>
+                <tr>
+                <td>Event Supported</td>
+                <td id="doEvent"></td>
+                </tr>
+                <tr>
+                <td>Tilt Left/Right [gamma]</td>
+                <td id="doTiltLR"></td>
+                </tr>
+                <tr>
+                <td>Tilt Front/Back [beta]</td>
+                <td id="doTiltFB"></td>
+                </tr>
+                <tr>
+                <td>Direction [alpha]</td>
+                <td id="doDirection"></td>
+                </tr>
+                </table>
+                </div>
+                <div id="jmolDiv"></div>
+                </script>
+                
+                <!-- This is JSMol App display code -->
+                <script id="host-jmol-code" type="text/template">
+                <div>
+                <a href="javascript:Jmol.script(jma,'rotate x 30;rotate y 40; rotate z 50;')">spin ON</a>
+                <a href="javascript:jmol.spin(false)">spin OFF</a>
+                <table>
+                <div id="jmolActualDiv" style="color:blue; margin-left:200px; z-index=-1">
+                </div>
+                </table>
+                </div>
+                </script>
+                
+                <!-- JavaScript Libraries -->
+                
+                <!-- jQuery! -->
+                <script src="libs/jquery-2.0.2.min.js"></script>
+                
+                <!-- TextFit resizes text to fill a container.
+                It's used so the titles and game words fit properly on any size screen.
+                https://github.com/STRML/textFit   -->
+                <script src="libs/textFit.min.js"></script>
+                
+                <!-- FastClick is used to eliminate the 300ms delay when clicking items on a mobile device
+                 https://github.com/ftlabs/fastclick -->
+                <script src="libs/fastclick.js"></script>
+                
+                <!-- If Socket.IO is used with Express, then the /socket.io/ path will
+                 serve the proper Socket.IO javascript files used by the browser -->
+                <script src="/socket.io/socket.io.js"></script>
+                
+                <!-- app.js is where all the client-side Anagrammatix game logic -->
+                <script src="app.js"></script>
+                
+                <script src="libs/gyro.js"></script>
+                </body>
+</html>
