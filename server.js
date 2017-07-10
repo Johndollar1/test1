@@ -9,7 +9,7 @@ var express = require('express')
 app.set('views', __dirname + '/views');
 app.engine('html', require('ejs').renderFile);
 
-server.listen(3000);
+server.listen();
 
 app.configure(function() {
   app.use(express.static(__dirname + '/public'));
