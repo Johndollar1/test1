@@ -1,5 +1,5 @@
 Clazz.declarePackage ("J.quantum");
-Clazz.load (["J.api.MOCalculationInterface", "J.quantum.QuantumCalculation"], "J.quantum.MOCalculation", ["J.constant.EnumQuantumShell", "J.util.Logger"], function () {
+Clazz.load (["J.quantum.QuantumCalculation"], "J.quantum.MOCalculation", ["J.quantum.QS", "JU.Logger"], function () {
 c$ = Clazz.decorateAsClass (function () {
 this.CX = null;
 this.CY = null;
@@ -29,44 +29,44 @@ this.sum = -1;
 this.c = 1;
 this.nGaussians = 0;
 this.doShowShellType = false;
-this.basisType = null;
+this.warned = null;
 this.coeffs = null;
 this.map = null;
-this.integration = 0;
+this.lastGaussianPtr = -1;
 this.isSquaredLinear = false;
 Clazz.instantialize (this, arguments);
-}, J.quantum, "MOCalculation", J.quantum.QuantumCalculation, J.api.MOCalculationInterface);
+}, J.quantum, "MOCalculation", J.quantum.QuantumCalculation);
 Clazz.prepareFields (c$, function () {
-this.dfCoefMaps = [ Clazz.newIntArray (1, 0),  Clazz.newIntArray (3, 0),  Clazz.newIntArray (4, 0),  Clazz.newIntArray (5, 0),  Clazz.newIntArray (6, 0),  Clazz.newIntArray (7, 0),  Clazz.newIntArray (10, 0)];
-this.coeffs =  Clazz.newDoubleArray (10, 0);
+this.dfCoefMaps =  Clazz.newArray (-1, [ Clazz.newIntArray (1, 0),  Clazz.newIntArray (3, 0),  Clazz.newIntArray (4, 0),  Clazz.newIntArray (5, 0),  Clazz.newIntArray (6, 0),  Clazz.newIntArray (7, 0),  Clazz.newIntArray (10, 0)]);
 });
 Clazz.makeConstructor (c$, 
 function () {
 Clazz.superConstructor (this, J.quantum.MOCalculation, []);
 });
-Clazz.overrideMethod (c$, "setupCalculation", 
-function (volumeData, bsSelected, bsExclude, bsMolecules, calculationType, atomCoordAngstroms, firstAtomOffset, shells, gaussians, dfCoefMaps, slaters, moCoefficients, linearCombination, isSquaredLinear, coefs, partialCharges, doNormalize, points, parameters, testFlags) {
+Clazz.defineMethod (c$, "setupCalculation", 
+function (volumeData, bsSelected, calculationType, xyz, atoms, firstAtomOffset, shells, gaussians, dfCoefMaps, slaters, moCoefficients, linearCombination, isSquaredLinear, coefs, doNormalize, points) {
 this.havePoints = (points != null);
 this.calculationType = calculationType;
 this.firstAtomOffset = firstAtomOffset;
 this.shells = shells;
 this.gaussians = gaussians;
 if (dfCoefMaps != null) this.dfCoefMaps = dfCoefMaps;
+this.coeffs =  Clazz.newDoubleArray (this.dfCoefMaps[this.dfCoefMaps.length - 1].length, 0);
 this.slaters = slaters;
 this.moCoefficients = moCoefficients;
 this.linearCombination = linearCombination;
 this.isSquaredLinear = isSquaredLinear;
 this.coefs = coefs;
 this.doNormalize = doNormalize;
-J.util.Logger.info ("Normalizing AOs: " + doNormalize + " slaters:" + (slaters != null));
+JU.Logger.info ("Normalizing AOs: " + doNormalize + " slaters:" + (slaters != null));
 this.countsXYZ = volumeData.getVoxelCounts ();
 this.initialize (this.countsXYZ[0], this.countsXYZ[1], this.countsXYZ[2], points);
 this.voxelData = volumeData.getVoxelData ();
 this.voxelDataTemp = (isSquaredLinear ?  Clazz.newFloatArray (this.nX, this.nY, this.nZ, 0) : this.voxelData);
-this.setupCoordinates (volumeData.getOriginFloat (), volumeData.getVolumetricVectorLengths (), bsSelected, atomCoordAngstroms, points, false);
-this.doDebug = (J.util.Logger.debugging);
-return (slaters != null || this.checkCalculationType ());
-}, "J.api.VolumeDataInterface,J.util.BS,J.util.BS,~A,~S,~A,~N,J.util.JmolList,~A,~A,~O,~A,~A,~B,~A,~A,~B,~A,~A,~N");
+this.setupCoordinates (volumeData.getOriginFloat (), volumeData.getVolumetricVectorLengths (), bsSelected, xyz, atoms, points, false);
+this.doDebug = (JU.Logger.debugging);
+return !bsSelected.isEmpty () && (slaters != null || this.checkCalculationType ());
+}, "J.jvxl.data.VolumeData,JU.BS,~S,~A,~A,~N,JU.Lst,~A,~A,~O,~A,~A,~B,~A,~B,~A");
 Clazz.overrideMethod (c$, "initialize", 
 function (nX, nY, nZ, points) {
 this.initialize0 (nX, nY, nZ, points);
@@ -125,75 +125,79 @@ return;
 if (!this.processSlater (i)) break;
 }
 });
-$_M(c$, "checkCalculationType", 
-($fz = function () {
+Clazz.defineMethod (c$, "checkCalculationType", 
+ function () {
 if (this.calculationType == null) {
-J.util.Logger.warn ("calculation type not identified -- continuing");
+JU.Logger.warn ("calculation type not identified -- continuing");
 return true;
 }this.nwChemMode = (this.calculationType.indexOf ("NWCHEM") >= 0);
-if (this.nwChemMode) J.util.Logger.info ("Normalization of contractions (NWCHEM)");
+if (this.nwChemMode) JU.Logger.info ("Normalization of contractions (NWCHEM)");
 if (this.calculationType.indexOf ("+") >= 0 || this.calculationType.indexOf ("*") >= 0) {
-J.util.Logger.warn ("polarization/diffuse wavefunctions have not been tested fully: " + this.calculationType + " -- continuing");
+JU.Logger.warn ("polarization/diffuse wavefunctions have not been tested fully: " + this.calculationType + " -- continuing");
 }if (this.calculationType.indexOf ("?") >= 0) {
-J.util.Logger.warn ("unknown calculation type may not render correctly -- continuing");
+JU.Logger.warn ("unknown calculation type may not render correctly -- continuing");
 } else if (this.points == null) {
-J.util.Logger.info ("calculation type: " + this.calculationType + " OK.");
+JU.Logger.info ("calculation type: " + this.calculationType + " OK.");
 }return true;
-}, $fz.isPrivate = true, $fz));
-$_M(c$, "normalizeShell", 
-($fz = function (iShell) {
+});
+Clazz.defineMethod (c$, "normalizeShell", 
+ function (iShell) {
 var c = 0;
 var shell = this.shells.get (iShell);
-this.basisType = J.constant.EnumQuantumShell.getItem (shell[1]);
+var basisType = shell[1];
 this.gaussianPtr = shell[2];
 this.nGaussians = shell[3];
 this.doShowShellType = this.doDebug;
-if (!this.setCoeffs (false)) return 0;
+if (!this.setCoeffs (basisType, false)) return 0;
 for (var i = this.map.length; --i >= 0; ) c += this.coeffs[i] * this.coeffs[i];
 
 return c;
-}, $fz.isPrivate = true, $fz), "~N");
-$_M(c$, "processShell", 
-($fz = function (iShell) {
+}, "~N");
+Clazz.defineMethod (c$, "processShell", 
+ function (iShell) {
 var lastAtom = this.atomIndex;
 var shell = this.shells.get (iShell);
 this.atomIndex = shell[0] + this.firstAtomOffset;
-this.basisType = J.constant.EnumQuantumShell.getItem (shell[1]);
+var basisType = shell[1];
 this.gaussianPtr = shell[2];
 this.nGaussians = shell[3];
 this.doShowShellType = this.doDebug;
 if (this.atomIndex != lastAtom && (this.thisAtom = this.qmAtoms[this.atomIndex]) != null) this.thisAtom.setXYZ (this, true);
-if (!this.setCoeffs (true)) return;
+if (!this.setCoeffs (shell[1], true)) return;
 if (this.havePoints) this.setMinMax (-1);
-switch (this.basisType) {
-case J.constant.EnumQuantumShell.S:
+switch (basisType) {
+case 0:
 this.addDataS ();
 break;
-case J.constant.EnumQuantumShell.P:
+case 1:
 this.addDataP ();
 break;
-case J.constant.EnumQuantumShell.SP:
+case 2:
 this.addDataSP ();
 break;
-case J.constant.EnumQuantumShell.D_SPHERICAL:
+case 3:
 this.addData5D ();
 break;
-case J.constant.EnumQuantumShell.D_CARTESIAN:
+case 4:
 this.addData6D ();
 break;
-case J.constant.EnumQuantumShell.F_SPHERICAL:
+case 5:
 this.addData7F ();
 break;
-case J.constant.EnumQuantumShell.F_CARTESIAN:
+case 6:
 this.addData10F ();
 break;
 default:
-J.util.Logger.warn (" Unsupported basis type for atomno=" + (this.atomIndex + 1) + ": " + this.basisType.tag);
-break;
+if (this.warned == null) this.warned = "";
+var key = "=" + (this.atomIndex + 1) + ": " + J.quantum.QS.getQuantumShellTag (basisType);
+if (this.warned.indexOf (key) < 0) {
+this.warned += key;
+JU.Logger.warn (" Unsupported basis type for atomno" + key);
+}break;
 }
-}, $fz.isPrivate = true, $fz), "~N");
-$_M(c$, "addValuesSquared", 
-($fz = function (occupancy) {
+}, "~N");
+Clazz.defineMethod (c$, "addValuesSquared", 
+ function (occupancy) {
 for (var ix = this.nX; --ix >= 0; ) {
 for (var iy = this.nY; --iy >= 0; ) {
 for (var iz = this.nZ; --iz >= 0; ) {
@@ -204,9 +208,9 @@ this.voxelDataTemp[ix][iy][iz] = 0;
 }
 }
 }
-}, $fz.isPrivate = true, $fz), "~N");
-$_M(c$, "getContractionNormalization", 
-($fz = function (el, cpt) {
+}, "~N");
+Clazz.defineMethod (c$, "getContractionNormalization", 
+ function (el, cpt) {
 var sum;
 var df = (el == 3 ? 15 : el == 2 ? 3 : 1);
 var f = df * Math.pow (3.141592653589793, 1.5) / Math.pow (2, el);
@@ -227,25 +231,28 @@ sum += c1 * f1 * c2 * f2 / Math.pow (alpha1 + alpha2, 2 * p);
 }
 }
 }sum = 1 / Math.sqrt (f * sum);
-if (J.util.Logger.debugging) J.util.Logger.debug ("\t\t\tnormalization for l=" + el + " nGaussians=" + this.nGaussians + " is " + sum);
+if (JU.Logger.debugging) JU.Logger.debug ("\t\t\tnormalization for l=" + el + " nGaussians=" + this.nGaussians + " is " + sum);
 return sum;
-}, $fz.isPrivate = true, $fz), "~N,~N");
-$_M(c$, "setCoeffs", 
-($fz = function (isProcess) {
+}, "~N,~N");
+Clazz.defineMethod (c$, "setCoeffs", 
+ function (type, isProcess) {
 var isOK = false;
-var mapType = this.basisType.id;
-this.map = this.dfCoefMaps[mapType];
-if (isProcess && this.thisAtom == null) {
+this.map = this.dfCoefMaps[type];
+if (type > J.quantum.QS.MAX_TYPE_SUPPORTED) {
+if (isProcess && this.doDebug) this.dumpInfo (type);
+this.moCoeff += this.map.length;
+return false;
+}if (isProcess && this.thisAtom == null) {
 this.moCoeff += this.map.length;
 return false;
 }for (var i = 0; i < this.map.length; i++) isOK = new Boolean (isOK | ((this.coeffs[i] = this.moCoefficients[this.map[i] + this.moCoeff++]) != 0)).valueOf ();
 
 isOK = new Boolean (isOK & (this.coeffs[0] != -2147483648)).valueOf ();
-if (isOK && this.doDebug && isProcess) this.dumpInfo (mapType);
+if (isOK && this.doDebug && isProcess) this.dumpInfo (type);
 return isOK;
-}, $fz.isPrivate = true, $fz), "~B");
-$_M(c$, "addDataS", 
-($fz = function () {
+}, "~N,~B");
+Clazz.defineMethod (c$, "addDataS", 
+ function () {
 var norm;
 var c1;
 if (this.doNormalize) {
@@ -281,9 +288,9 @@ for (var iz = this.zMax; --iz >= this.zMin; ) this.vd[(this.havePoints ? 0 : iz)
 }
 }
 }
-}, $fz.isPrivate = true, $fz));
-$_M(c$, "addDataP", 
-($fz = function () {
+});
+Clazz.defineMethod (c$, "addDataP", 
+ function () {
 var mx = this.coeffs[0];
 var my = this.coeffs[1];
 var mz = this.coeffs[2];
@@ -302,9 +309,9 @@ var a = c1;
 if (this.doNormalize) a *= Math.pow (alpha, 1.25) * norm;
 this.calcSP (alpha, 0, a * mx, a * my, a * mz);
 }
-}, $fz.isPrivate = true, $fz));
-$_M(c$, "addDataSP", 
-($fz = function () {
+});
+Clazz.defineMethod (c$, "addDataSP", 
+ function () {
 var isP = (this.map.length == 3);
 var pPt = (isP ? 0 : 1);
 var ms = (isP ? 0 : this.coeffs[0]);
@@ -338,9 +345,9 @@ a1 *= Math.pow (alpha, 0.75) * norm1;
 a2 *= Math.pow (alpha, 1.25) * norm2;
 }this.calcSP (alpha, a1 * ms, a2 * mx, a2 * my, a2 * mz);
 }
-}, $fz.isPrivate = true, $fz));
-$_M(c$, "setCE", 
-($fz = function (alpha, as, ax, ay, az) {
+});
+Clazz.defineMethod (c$, "setCE", 
+ function (alpha, as, ax, ay, az) {
 for (var i = this.xMax; --i >= this.xMin; ) {
 this.CX[i] = as + ax * this.X[i];
 this.EX[i] = Math.exp (-this.X2[i] * alpha) * this.moFactor;
@@ -353,18 +360,18 @@ for (var i = this.zMax; --i >= this.zMin; ) {
 this.CZ[i] = az * this.Z[i];
 this.EZ[i] = Math.exp (-this.Z2[i] * alpha);
 }
-}, $fz.isPrivate = true, $fz), "~N,~N,~N,~N,~N");
-$_M(c$, "setE", 
-($fz = function (EX, alpha) {
+}, "~N,~N,~N,~N,~N");
+Clazz.defineMethod (c$, "setE", 
+ function (EX, alpha) {
 for (var i = this.xMax; --i >= this.xMin; ) EX[i] = Math.exp (-this.X2[i] * alpha) * this.moFactor;
 
 for (var i = this.yMax; --i >= this.yMin; ) this.EY[i] = Math.exp (-this.Y2[i] * alpha);
 
 for (var i = this.zMax; --i >= this.zMin; ) this.EZ[i] = Math.exp (-this.Z2[i] * alpha);
 
-}, $fz.isPrivate = true, $fz), "~A,~N");
-$_M(c$, "calcSP", 
-($fz = function (alpha, as, ax, ay, az) {
+}, "~A,~N");
+Clazz.defineMethod (c$, "calcSP", 
+ function (alpha, as, ax, ay, az) {
 this.setCE (alpha, as, ax, ay, az);
 for (var ix = this.xMax; --ix >= this.xMin; ) {
 var eX = this.EX[ix];
@@ -379,9 +386,9 @@ this.vd[(this.havePoints ? 0 : iz)] += (cXY + this.CZ[iz]) * eXY * this.EZ[iz];
 }
 }
 }
-}, $fz.isPrivate = true, $fz), "~N,~N,~N,~N,~N");
-$_M(c$, "addData6D", 
-($fz = function () {
+}, "~N,~N,~N,~N,~N");
+Clazz.defineMethod (c$, "addData6D", 
+ function () {
 var mxx = this.coeffs[0];
 var myy = this.coeffs[1];
 var mzz = this.coeffs[2];
@@ -436,9 +443,9 @@ this.vd[(this.havePoints ? 0 : iz)] += (axx_x2__ayy_y2__axy_xy + (this.CZ[iz] + 
 }
 }
 }
-}, $fz.isPrivate = true, $fz));
-$_M(c$, "addData5D", 
-($fz = function () {
+});
+Clazz.defineMethod (c$, "addData5D", 
+ function () {
 var alpha;
 var c1;
 var a;
@@ -509,9 +516,9 @@ this.vd[(this.havePoints ? 0 : iz)] += (ad0 * (czz - 0.5 * (cxx + cyy)) + ad1p *
 }
 }
 }
-}, $fz.isPrivate = true, $fz));
-$_M(c$, "addData10F", 
-($fz = function () {
+});
+Clazz.defineMethod (c$, "addData10F", 
+ function () {
 var alpha;
 var c1;
 var a;
@@ -550,9 +557,9 @@ norm1 = this.getContractionNormalization (3, 1);
 norm2 = norm1;
 norm3 = norm1;
 } else {
-norm1 = Math.pow (1056.818280307081, 0.25);
-norm2 = norm1 / Math.sqrt (3);
-norm3 = norm1 / Math.sqrt (15);
+norm1 = 5.701643762839922;
+norm2 = 3.2918455612989796;
+norm3 = 1.4721580892990938;
 }} else {
 norm1 = norm2 = norm3 = 1;
 }var mxxx = this.coeffs[0];
@@ -609,9 +616,9 @@ this.vd[(this.havePoints ? 0 : iz)] += (cxxx + cyyy + czzz + cxyy + cxxy + cxxz 
 }
 }
 }
-}, $fz.isPrivate = true, $fz));
-$_M(c$, "addData7F", 
-($fz = function () {
+});
+Clazz.defineMethod (c$, "addData7F", 
+ function () {
 var alpha;
 var c1;
 var a;
@@ -656,24 +663,24 @@ norm2 = norm3 * Math.sqrt (5);
 norm1 = norm3 * Math.sqrt (15);
 norm4 = -1;
 } else {
-norm1 = Math.pow (1056.818280307081, 0.25);
-norm2 = norm1 / Math.sqrt (3);
-norm3 = norm1 / Math.sqrt (15);
+norm1 = 5.701643762839922;
+norm2 = 3.2918455612989796;
+norm3 = 1.4721580892990938;
 norm4 = 1;
 }} else {
 norm1 = norm2 = norm3 = norm4 = 1;
-}var c0_xxz_yyz = (3.0 / (2.0 * Math.sqrt (5)));
-var c1p_xzz = Math.sqrt (1.2);
-var c1p_xxx = Math.sqrt (0.375);
-var c1p_xyy = Math.sqrt (0.075);
-var c1n_yzz = c1p_xzz;
-var c1n_yyy = c1p_xxx;
-var c1n_xxy = c1p_xyy;
-var c2p_xxz_yyz = Math.sqrt (0.75);
-var c3p_xxx = Math.sqrt (0.625);
-var c3p_xyy = 0.75 * Math.sqrt (2);
-var c3n_yyy = c3p_xxx;
-var c3n_xxy = c3p_xyy;
+}var c0_xxz_yyz = 0.6708203932499369;
+var c1p_xzz = 1.0954451150103321;
+var c1p_xxx = 0.6123724356957945;
+var c1p_xyy = 0.27386127875258304;
+var c1n_yzz = 1.0954451150103321;
+var c1n_yyy = 0.6123724356957945;
+var c1n_xxy = 0.27386127875258304;
+var c2p_xxz_yyz = 0.8660254037844386;
+var c3p_xxx = 0.7905694150420949;
+var c3p_xyy = 1.0606601717798214;
+var c3n_yyy = 0.7905694150420949;
+var c3n_xxy = 1.0606601717798214;
 var m0 = this.coeffs[0];
 var m1p = this.coeffs[1];
 var m1n = this.coeffs[2];
@@ -717,21 +724,21 @@ cxzz = norm2 * x * zz;
 cyyz = norm2 * yy * z;
 cyzz = norm2 * y * zz;
 cxyz = norm1 * x * y * z;
-f0 = af0 * (czzz - c0_xxz_yyz * (cxxz + cyyz));
-f1p = norm4 * af1p * (c1p_xzz * cxzz - c1p_xxx * cxxx - c1p_xyy * cxyy);
-f1n = af1n * (c1n_yzz * cyzz - c1n_yyy * cyyy - c1n_xxy * cxxy);
-f2p = af2p * (c2p_xxz_yyz * (cxxz - cyyz));
+f0 = af0 * (czzz - 0.6708203932499369 * (cxxz + cyyz));
+f1p = norm4 * af1p * (1.0954451150103321 * cxzz - 0.6123724356957945 * cxxx - 0.27386127875258304 * cxyy);
+f1n = af1n * (1.0954451150103321 * cyzz - 0.6123724356957945 * cyyy - 0.27386127875258304 * cxxy);
+f2p = af2p * (0.8660254037844386 * (cxxz - cyyz));
 f2n = af2n * cxyz;
-f3p = norm4 * af3p * (c3p_xxx * cxxx - c3p_xyy * cxyy);
-f3n = -af3n * (c3n_yyy * cyyy - c3n_xxy * cxxy);
+f3p = norm4 * af3p * (0.7905694150420949 * cxxx - 1.0606601717798214 * cxyy);
+f3n = -af3n * (0.7905694150420949 * cyyy - 1.0606601717798214 * cxxy);
 this.vd[(this.havePoints ? 0 : iz)] += (f0 + f1p + f1n + f2p + f2n + f3p + f3n) * eXY * this.EZ[iz];
 }
 }
 }
 }
-}, $fz.isPrivate = true, $fz));
-$_M(c$, "processSlater", 
-($fz = function (slaterIndex) {
+});
+Clazz.defineMethod (c$, "processSlater", 
+ function (slaterIndex) {
 var lastAtom = this.atomIndex;
 var slater = this.slaters[slaterIndex];
 this.atomIndex = slater.iAtom;
@@ -871,30 +878,34 @@ this.vd[(this.havePoints ? 0 : iz)] += value;
 }
 }
 return true;
-}, $fz.isPrivate = true, $fz), "~N");
-$_M(c$, "dumpInfo", 
-($fz = function (shell) {
+}, "~N");
+Clazz.defineMethod (c$, "dumpInfo", 
+ function (shell) {
 if (this.doShowShellType) {
-J.util.Logger.debug ("\n\t\t\tprocessShell: " + shell + " type=" + J.constant.EnumQuantumShell.getQuantumShellTag (shell) + " nGaussians=" + this.nGaussians + " atom=" + this.atomIndex);
+JU.Logger.debug ("\n\t\t\tprocessShell: " + shell + " type=" + J.quantum.QS.getQuantumShellTag (shell) + " nGaussians=" + this.nGaussians + " atom=" + this.atomIndex);
 this.doShowShellType = false;
-}if (J.util.Logger.isActiveLevel (6)) for (var ig = 0; ig < this.nGaussians; ig++) {
+}if (JU.Logger.isActiveLevel (6) && this.gaussianPtr != this.lastGaussianPtr) {
+this.lastGaussianPtr = this.gaussianPtr;
+for (var ig = 0; ig < this.nGaussians; ig++) {
 var alpha = this.gaussians[this.gaussianPtr + ig][0];
 var c1 = this.gaussians[this.gaussianPtr + ig][1];
-J.util.Logger.debug ("\t\t\tGaussian " + (ig + 1) + " alpha=" + alpha + " c=" + c1);
+JU.Logger.debug ("\t\t\tGaussian " + (ig + 1) + " alpha=" + alpha + " c=" + c1);
 }
-var so = J.quantum.MOCalculation.getShellOrder (shell);
+}var so = J.quantum.MOCalculation.getShellOrder (shell);
 for (var i = 0; i < this.map.length; i++) {
+var n = this.map[i] + this.moCoeff - this.map.length + i + 1;
 var c = this.coeffs[i];
-J.util.Logger.debug ("MO coeff " + (so == null ? "?" : so[i]) + " " + (this.map[i] + this.moCoeff - this.map.length + i + 1) + "\t" + c + "\t" + this.thisAtom.atom);
+JU.Logger.debug ("MO coeff " + (so == null ? "?" : so[i]) + " " + n + "\t" + c + "\t" + this.thisAtom.atom);
 }
-}, $fz.isPrivate = true, $fz), "~N");
-c$.getShellOrder = $_M(c$, "getShellOrder", 
-($fz = function (i) {
+}, "~N");
+c$.getShellOrder = Clazz.defineMethod (c$, "getShellOrder", 
+ function (i) {
 return (i < 0 || i >= J.quantum.MOCalculation.shellOrder.length ? null : J.quantum.MOCalculation.shellOrder[i]);
-}, $fz.isPrivate = true, $fz), "~N");
-$_M(c$, "calculateElectronDensity", 
+}, "~N");
+Clazz.defineMethod (c$, "calculateElectronDensity", 
 function () {
 if (this.points != null) return;
+this.integration = 0;
 for (var ix = this.nX; --ix >= 0; ) for (var iy = this.nY; --iy >= 0; ) for (var iz = this.nZ; --iz >= 0; ) {
 var x = this.voxelData[ix][iy][iz];
 this.integration += x * x;
@@ -903,10 +914,10 @@ this.integration += x * x;
 
 var volume = this.stepBohr[0] * this.stepBohr[1] * this.stepBohr[2];
 this.integration *= volume;
-J.util.Logger.info ("Integrated density = " + this.integration);
+JU.Logger.info ("Integrated density = " + this.integration);
 });
 Clazz.defineStatics (c$,
 "CUT", -50,
 "ROOT3", 1.73205080756887729,
-"shellOrder", [["S"], ["X", "Y", "Z"], ["S", "X", "Y", "Z"], ["d0/z2", "d1+/xz", "d1-/yz", "d2+/x2-y2", "d2-/xy"], ["XX", "YY", "ZZ", "XY", "XZ", "YZ"], ["f0/2z3-3x2z-3y2z", "f1+/4xz2-x3-xy2", "f1-/4yz2-x2y-y3", "f2+/x2z-y2z", "f2-/xyz", "f3+/x3-3xy2", "f3-/3x2y-y3"], ["XXX", "YYY", "ZZZ", "XYY", "XXY", "XXZ", "XZZ", "YZZ", "YYZ", "XYZ"]]);
+"shellOrder",  Clazz.newArray (-1, [ Clazz.newArray (-1, ["S"]),  Clazz.newArray (-1, ["X", "Y", "Z"]),  Clazz.newArray (-1, ["S", "X", "Y", "Z"]),  Clazz.newArray (-1, ["d0/z2", "d1+/xz", "d1-/yz", "d2+/x2-y2", "d2-/xy"]),  Clazz.newArray (-1, ["XX", "YY", "ZZ", "XY", "XZ", "YZ"]),  Clazz.newArray (-1, ["f0/2z3-3x2z-3y2z", "f1+/4xz2-x3-xy2", "f1-/4yz2-x2y-y3", "f2+/x2z-y2z", "f2-/xyz", "f3+/x3-3xy2", "f3-/3x2y-y3"]),  Clazz.newArray (-1, ["XXX", "YYY", "ZZZ", "XYY", "XXY", "XXZ", "XZZ", "YZZ", "YYZ", "XYZ"])]));
 });
