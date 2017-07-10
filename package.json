@@ -1,22 +1,12 @@
 {
-  "name": "Gyro-Server",
-  "version": "0.0.1",
-  "description": "A client and server for sharing gyroscope events bewtween clients",
+  "name": "tech_studio",
+  "version": "1.0.0",
+  "description": "Manipulating destop browser from mobile browser with socket.io and node.js",
   "main": "server.js",
-  "dependencies": {
-    "express": "~3.4.8",
-    "socket.io": "~0.9.16",
-    "ejs": "~0.8.5"
-  },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/OrganicPanda/Gyro-Server.git"
-  },
-  "author": "Steve Thomson",
-  "license": "MIT"
+  "author": "",
+  "license": "ISC"
 }
