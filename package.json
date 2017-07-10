@@ -1,12 +1,12 @@
 {
-  "name": "tech_studio",
-  "version": "1.0.0",
-  "description": "Manipulating destop browser from mobile browser with socket.io and node.js",
-  "main": "server.js",
+  "name": "iPhoneGyro",
+  "version": "0.0.1",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node app"
   },
-  "author": "",
-  "license": "ISC"
+  "dependencies": {
+    "express": ">=3",
+    "socket.io": "*"
+  }
 }
