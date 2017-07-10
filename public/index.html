@@ -1,139 +1,41 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
+<html>
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<link href='http://fonts.googleapis.com/css?family=Open+Sans+Condensed:300' rel='stylesheet' type='text/css'>
-<link href='http://fonts.googleapis.com/css?family=Over+the+Rainbow' rel='stylesheet' type='text/css'>
-<link href='http://fonts.googleapis.com/css?family=Yanone+Kaffeesatz:700' rel='stylesheet' type='text/css'>
-<link href='http://fonts.googleapis.com/css?family=Exo+2' rel='stylesheet' type='text/css'>
-<title>Testing</title>
-<link href="css/style.css" rel="stylesheet">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta name="viewport" content="width=device-width">
+
+  <title>iPhone CSS 3</title>
+	<link rel='stylesheet' type='text/css' href='/stylesheets/base.css'>
+
+	<script type="text/javascript" src="/javascripts/traqball.js"></script>
+	<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+
+	<script type="text/javascript">
+		window.addEventListener("load", callback, false);
+
+		var box;
+		function callback(){
+		    box = new Traqball({stage: "stage", axis: [-1,0,0], angle: 0});
+		}
+		var socket = io.connect('//')
+
+		socket.on('move', function (data) {
+			box.setup({stage: "stage", axis: [parseFloat(data.x), parseFloat(data.y), parseFloat(data.z)], angle: parseFloat(data.w)});
+		});
+	</script>
 </head>
-<body>
 
-<!-- Main Wrapper Container -->
-<div id="mainWrapper">
-<div id= "decBar"><div id="black"></div><div id="orange"></div></div>
-<!-- Header container-->
-<div id="header"><a id="title">Mal schauen...</a></div>
-
-<!-- Main Body of the Page -->
-<div id="mainBody">
-<!-- This is where the templates defined below will be used -->
-</div>
-
-<!-- Footer container-->
-<div id="footer">
-<div id="footerNote" ></div><div id="github"><a href="https://github.com/CS76/GyroMol" target="_blank"><img src="images/github-logo.png" width="100%" height="100%" alt="GitHub" /></a></div>
-</div>
-
-</div>
-
-
-<!-- Main Title Screen that appears when the page loads for the first time -->
-<script id="intro-screen-template" type="text/template">
-<div id="initialScreen">
-<table width="100%" height="80%"border="0"><tr><td ><a href="javascript:void(0);" id="btnCreateCanvas">Create</a></td></tr><tr><td ><a href="javascript:void(0);" id="btnJoinCanvas">Connect</a></td></tr></table>
-</div>
-</script>
-
-
-<!-- This screen appears when a user clicks "CREATE" on the Title Screen -->
-<script id="create-canvas-template" type="text/template">
-<div id="content">
-    <div id="userGuide">
-		<p>Open this site on your mobile device</p>
-		<p id="gameURL">http://cs76-gyromol.jit.su/ </p>
-		 <img src="images/siteQR.png" width="50%" height="50%" />
-		<p>Then click <strong>CONNECT</strong> and <br/> enter the following Canvas ID:</p>
-		<p style="font-size:20px" id="spanNewGameCode">Error !</p>
-    </div>
-	<div id="playerWaitingMessage" style="font-size:12px; text-align:center">
-		<p>Device Orientation</p>
-		<table width="200" style=" margin: 0 auto;">
-			<tr><td>Event supported</td><td id="doEvent">Device Orientation</td></tr>
-			<tr><td>Tilt Left/Right[gamma]</td><td id="doTiltLR"></td></tr>
-			<tr><td>Tilt Front/Back[beta]</td><td id="doTiltFB"></td></tr>
-			<tr><td>Direction[alpha]</td><td id="doDirection"></td></tr>
-		</table>
-</div>
-</div>
-<div id="jsmolContainer"></div>
-</script>
-
-<!-- This screen appears when a user clicks "CREATE" on the Title Screen -->
-<script id="join-canvas-template" type="text/template">
-<div id="mobDevicePage" style="text-align:center; height:100%">
-<table width="100%" height="100%" border="0">
-  <tr>
-    <td height="5%">Enter the Canvas <b>ID</b> and press <b>CONNECT</b><br />
-    <input id="inputCanvasId" type="text" style="height:20%; width: 30%"/>
-    </td>
-  </tr>
-  <tr>
-    <td height="5%"><a href="javascript:void(0);" id="btnStart">Connect</a></td>
-  </tr>
-   <tr>
-    <td height="5%">
-	<div id="playerWaitingMessage" style="font-size:12px; text-align:center">
-		<p>Device Orientation</p>
-		<table width="200" style=" margin: 0 auto;">
-			<tr><td>Event supported</td><td id="doEvent">Device Orientation</td></tr>
-			<tr><td>Tilt Left/Right[gamma]</td><td id="doTiltLR"></td></tr>
-			<tr><td>Tilt Front/Back[beta]</td><td id="doTiltFB"></td></tr>
-			<tr><td>Direction[alpha]</td><td id="doDirection"></td></tr>
-		</table>
-	</div>
-	</td>
-  </tr>
-</table>
-</div>
-</script>
-
-
-
-<!---->
-
-<script id="jmol-code">
-var Info;
-;(function() {
-Info = {
-debug: false,
-color: "000",
-use: "HTML5",
-readyFunction: null,
-defaultModel: "$dopamine", // PubChem -- use $ for NCI
-bondWidth: 4,
-zoomScaling: 1.5,
-pinchScaling: 2.0,
-mouseDragFactor: 0.5,
-touchDragFactor: 0.15,
-multipleBondSpacing: 4,
-spinRateX: 0.2,
-spinRateY: 0.5,
-spinFPS: 20,
-spin:true,
-debug: false
-}
-})();
-</script>
-
-<!-- JavaScript Libraries -->
-<!-- JSMOL-->
-<script type="text/javascript" src="libs/JSmol.min.js"></script>
-
-<!-- jQuery! -->
-<script src="libs/jquery-2.0.2.min.js"></script>
-
-<!-- If Socket.IO is used with Express, then the /socket.io/ path will serve the proper Socket.IO javascript files used by the browser -->
-<script src="/socket.io/socket.io.js"></script>
-                
-<!-- app.js is where all the client side gyro script is included -->
-<script src="app.js"></script>
-				
-<!-- mobile browser gyro values capturing events -->
-<script src="libs/gyro.js"></script>
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+<body id="body">
+<section id="stage">
+	<article id="box">
+    <section id="front"></section>
+	 	<section id="top"></section>
+	 	<section id="bottom"></section>
+		<section id="back"></section>
+		<section id="left"></section>
+		<section id="right"></section>
+	</article>
+</section>
 
 </body>
 </html>
