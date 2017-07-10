@@ -120,7 +120,7 @@ var path = url.parse(request.url).pathname; //a path that follows our root domai
 });
 
 // listen to port 8001
-server.listen(8001);
+server.listen(process.env.PORT || 5000)
 
 var listener = io.listen(server);  //once server is instatiated, make a listener for socket.io
 listener.sockets.on('connection', function(socket){
